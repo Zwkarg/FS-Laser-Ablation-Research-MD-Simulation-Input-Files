@@ -1,0 +1,69 @@
+#  Sonntag Paper Build with thickness of 7
+
+log		log.fs.300kStabv2.lmp
+
+dimension	3
+boundary	p s p
+
+
+# Declare atom style
+
+atom_style	atomic
+neighbor	0.3 bin
+neigh_modify	delay 5
+
+# Create Geometry
+
+lattice		fcc 0.9
+region		box block 0 100 -70 0 -50 50
+create_box	2 box
+create_atoms	1 box
+
+
+# Define Atom Mass
+
+mass		1 26.96
+mass		2 26.96
+
+# LJ Potentials
+
+pair_style	lj/cut 1.75
+##########	Epsilon Sigma Cutoff
+pair_coeff	* * 1.2 1.0 2.5
+
+
+# Define Regions
+
+#group		base region 1
+region		2 sphere 50 0 0.0 50
+group		target region 2
+set		group target type 2
+
+compute		new all temp
+velocity	all create 0.0659 482748 temp new
+#fix		1 all nve temp 0.7 0.7 0.002
+#fix		1 all npt temp 0.7 0.7 1 iso 0 0 1 drag 1
+#fix		2 target wall/harmonic 
+fix		1 all nve
+fix		2 all langevin 0.0215 0.0215 100.0 48279
+#fix		3 target addforce 2.5 2.5 5.0 
+#fix		3 all temp/rescale 100 0.1 0.1 0.01 1.0
+
+compute		2 target chunk/atom type
+fix		3 target ave/chunk 1 10 300 2 density/mass file fs.300kStabv2.txt
+
+#fix ywalls all wall/reflect/stochastic diffusive 2308 &
+	#ylo EDGE 300 0 0 0 yhi EDGE 300 0.1 0 0
+# Run
+
+timestep	0.003
+thermo		300
+thermo_modify	temp new
+
+
+#dump		1 all atom 500 dump.fs.300kStabv2
+
+restart		150000 stab.300k.restart2
+
+run		150000
+
